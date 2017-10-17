@@ -41,7 +41,7 @@ static void log(const char* fmt, ...)
 
 struct State {
     State()
-        : stopped(false), disconnected(false)
+        : stopped(false), disconnected(false), stopOnLastDisconnect(true)
     {
         wakeupPipe[0] = wakeupPipe[1] = -1;
     }
@@ -64,7 +64,7 @@ struct State {
     static void run(void* arg);
 
     Mutex mutex;
-    bool stopped, disconnected;
+    bool stopped, disconnected, stopOnLastDisconnect;
     std::vector<int> newClients, disconnectedClients;
     std::vector<std::pair<int, std::string> > parsedDatas;
 
@@ -250,7 +250,7 @@ void State::run()
                                 log("State::run, write got some bad error %d\n", errno);
                                 // badness, take our fd out. if this is our only fd then we're in trouble
                                 it = fds.erase(it);
-                                if (fds.empty()) {
+                                if (fds.empty() && stopOnLastDisconnect) {
                                     log("State::run, write out of fds, telling main thread\n");
                                     MutexLocker locker(&mutex);
                                     disconnected = true;
@@ -322,7 +322,7 @@ void State::run()
                                     disconnectedClients.push_back(fd.fd);
 
                                     fds.erase(fit);
-                                    if (fds.size() <= 1) {
+                                    if (fds.size() <= 1 && stopOnLastDisconnect) {
                                         log("State::run, handle read, we're gone\n");
                                         disconnected = true;
                                         uv_async_send(&async);
@@ -526,6 +526,10 @@ NAN_METHOD(write) {
 
 NAN_METHOD(listen) {
     if (info.Length() > 0 && info[0]->IsString()) {
+        if (info.Length() > 1 && info[1]->IsBoolean()) {
+            state.stopOnLastDisconnect = v8::Local<v8::Boolean>::Cast(info[1])->Value();
+        }
+
         const std::string path = *Nan::Utf8String(info[0]);
         // connect to path.
 
