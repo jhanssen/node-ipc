@@ -478,9 +478,6 @@ NAN_METHOD(connect) {
             Nan::ThrowError("Can't make IPC socket");
             return;
         }
-        int r = fcntl(fd, F_GETFL);
-        fcntl(fd, F_SETFL, r | O_NONBLOCK | O_CLOEXEC);
-
         int e;
         struct sockaddr_un addr;
         memset(&addr, 0, sizeof(addr));
@@ -493,6 +490,8 @@ NAN_METHOD(connect) {
             info.GetReturnValue().Set(Nan::New<v8::Boolean>(false));
         } else {
             // we're good, launch thread and return status
+            int r = fcntl(fd, F_GETFL);
+            fcntl(fd, F_SETFL, r | O_NONBLOCK | O_CLOEXEC);
             if (state.init(State::FD::Client, fd))
                 uv_thread_create(&state.thread, State::run, 0);
             info.GetReturnValue().Set(Nan::New<v8::Boolean>(true));
