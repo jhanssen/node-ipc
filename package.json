@@ -1,0 +1,17 @@
+{
+  "name": "@jhanssen/ipc",
+  "version": "1.0.0",
+  "description": "Native ipc module",
+  "main": "index.js",
+  "scripts": {
+    "build": "node-gyp rebuild",
+    "build-debug": "node-gyp rebuild --debug"
+  },
+  "author": "Jan Erik Hanssen",
+  "license": "MIT",
+  "gypfile": true,
+  "dependencies": {
+    "bindings": "^1.2.1",
+    "nan": "^2.5.1"
+  }
+}
